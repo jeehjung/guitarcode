@@ -32,7 +32,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;line-height:1.7;margi
 <section class="view active" id="view-finder">
   <div class="panel">
     <h2>어떤 코드를 찾고 있나요?</h2><p class="lead">음과 코드 종류를 고르면 쉬운 운지부터 확인할 수 있어요.</p>
-    <div class="picker-grid"><div><span class="field-label">기본 음</span><div class="chips" id="roots"></div></div><div><span class="field-label">코드 종류 · 전체 옵션</span><div class="chips" id="types"></div></div></div>
+    <div class="picker-grid"><div><span class="field-label">기본음 / 분수 코드 직접 입력</span><div class="entry-row"><input id="rootInput" type="text" value="C" placeholder="예: C#, Bb, D/F#, C/G, G/B" aria-label="기본음 또는 분수 코드"><button type="button" class="action primary" id="applyRoot">적용</button></div><div class="small-note">샵은 #, 플렛은 b로 입력하세요. 예: F#, Bb, D/F#</div><div class="input-message" id="rootError" role="status" aria-live="polite"></div></div><div><span class="field-label">코드 종류 선택</span><div class="chips" id="types"></div></div></div>
     <div class="legend"><span><i class="sym-dot"></i> 개방현</span><span><i class="sym-fill"></i> 손가락으로 누르는 위치</span><span>× 치지 않음</span><span>숫자는 손가락 번호</span></div>
     <p class="small-note">운지 그림은 기타를 앞에서 본 모습이에요. 6번 줄부터 1번 줄 순서로 운지 숫자를 함께 표시합니다. ×는 치지 않는 줄, 0은 개방현입니다.</p>
   </div>
@@ -96,11 +96,13 @@ const CHORDS={
 'C|add9':[{name:'Cadd9 기본형',frets:[-1,3,2,0,3,3],fingers:[0,2,1,0,3,4],difficulty:2,tip:'C 코드에 D음을 더한 밝은 느낌의 코드예요.'}],
 'G|add9':[{name:'Gadd9 기본형',frets:[3,0,0,2,0,3],fingers:[2,0,0,1,0,3],difficulty:2,tip:'G 코드에 A음을 더한 개방현 중심의 코드예요.'}]
 };
-let selectedRoot='C',selectedType='major',audioCtx=null;
+let selectedRoot='C',selectedType='major',directBass='',directRootInput='C',audioCtx=null;
 const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const NOTE_PITCH={'C':0,'B#':0,'C#':1,'Db':1,'D♭':1,'D':2,'D#':3,'Eb':3,'E♭':3,'E':4,'Fb':4,'F♭':4,'E#':5,'F':5,'F#':6,'Gb':6,'G♭':6,'G':7,'G#':8,'Ab':8,'A♭':8,'A':9,'A#':10,'Bb':10,'B♭':10,'B':11,'Cb':11,'C♭':11};
 function normalizeNote(raw){const n=raw.trim().replace('♯','#').replace('♭','b');const letter=n[0].toUpperCase()+n.slice(1);const pitch=NOTE_PITCH[letter];return pitch===undefined?null:NOTE_NAMES[pitch]}
-const rootEl=document.getElementById('roots'),typeEl=document.getElementById('types');
+const typeEl=document.getElementById('types');
+function parseDirectInput(raw){const value=raw.trim().replace(/\s+/g,'').replace(/♯/g,'#').replace(/♭/g,'b');const match=value.match(/^([A-Ga-g](?:#|b)?)(?:\/([A-Ga-g](?:#|b)?))?$/);if(!match)return null;const root=normalizeNote(match[1]),bass=match[2]?normalizeNote(match[2]):'';if(!root||(match[2]&&!bass))return null;return {root,bass};}
+function applyRootInput(){const input=document.getElementById('rootInput'),error=document.getElementById('rootError'),parsed=parseDirectInput(input.value);if(!parsed){error.textContent='입력을 확인해 주세요. 예: C#, Bb, D/F#, C/G';return;}selectedRoot=parsed.root;directBass=parsed.bass;directRootInput=input.value.trim();error.textContent='';render();}
 function renderChips(el,items,label,selected,onPick){el.replaceChildren();items.forEach(item=>{const b=document.createElement('button');b.type='button';b.className='chip'+(item===selected?' active':'');b.textContent=label(item);b.setAttribute('aria-pressed',String(item===selected));b.onclick=()=>onPick(item);el.appendChild(b)})}
 function typeName(type){return TYPES.find(x=>x[0]===type)?.[1]||type}
 const QUALITY_INTERVALS={
@@ -152,15 +154,15 @@ function generateFingerings(root,type,bass=''){
 function transposeTemplate(root,type){return generateFingerings(root,type,'')}
 function keyRoot(root){return root==='A♯/B♭'?'A#':root==='C♯/D♭'?'C#':root==='D♯/E♭'?'D#':root==='F♯/G♭'?'F#':root==='G♯/A♭'?'G#':root}
 function render(){
- renderChips(rootEl,ROOTS,x=>x,selectedRoot,x=>{selectedRoot=x;render()});
+ const rootInput=document.getElementById('rootInput');if(rootInput&&rootInput.value!==directRootInput)rootInput.value=directRootInput;
  renderChips(typeEl,TYPES.map(x=>x[0]),x=>typeName(x),selectedType,x=>{selectedType=x;render()});
  const key=keyRoot(selectedRoot)+'|'+selectedType;
- let list=CHORDS[key]||[];
+ let list=directBass?[]:(CHORDS[key]||[]);
  if(!list.length){
-  const generated=generateFingerings(keyRoot(selectedRoot),selectedType,'');
+  const generated=generateFingerings(keyRoot(selectedRoot),selectedType,directBass);
   if(generated.length)list=generated;
  }
- document.getElementById('resultTitle').textContent=selectedRoot+' '+typeName(selectedType);
+ document.getElementById('resultTitle').textContent=selectedRoot+(directBass?'/'+directBass:'')+' '+typeName(selectedType);
  const cards=document.getElementById('cards');cards.replaceChildren();
  if(!list.length){document.getElementById('resultDesc').textContent='이 코드 구성에 맞는 운지를 찾지 못했어요.';const empty=document.createElement('div');empty.className='panel';empty.textContent='현재 기타 튜닝과 운지 범위에서 조건을 만족하는 운지 후보가 없어요. 다른 코드 종류를 선택해 보세요.';cards.appendChild(empty);return}
  document.getElementById('resultDesc').textContent=list.some(c=>c.generated)?`${list.length}가지 자동 계산 후보 · 쉬운 순서 · 연주 전 확인 권장`:`${list.length}가지 운지 · 쉬운 순서`;
@@ -220,6 +222,8 @@ function pluck(ctx,midi,start,duration=.95,velocity=.19){
 function playChord(chord){const ctx=getAudio();if(!ctx)return;const now=ctx.currentTime+.035;chord.frets.forEach((f,i)=>{if(f>=0)pluck(ctx,NOTE_MIDI[i]+f,now+i*.035,.9,.13)})}
 function playClick(beat){const ctx=getAudio();if(!ctx)return;const now=ctx.currentTime;const osc=ctx.createOscillator(),g=ctx.createGain();osc.type='sine';osc.frequency.setValueAtTime(beat===0?1200:800,now);g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(.16,now+.004);g.gain.exponentialRampToValueAtTime(.0001,now+.055);osc.connect(g);g.connect(ctx.destination);osc.start(now);osc.stop(now+.06)}
 
+document.getElementById('applyRoot').addEventListener('click',applyRootInput);
+document.getElementById('rootInput').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();applyRootInput()}});
 render();
 
 </script>
