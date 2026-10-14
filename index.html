@@ -158,12 +158,12 @@ function render(){
  const key=keyRoot(selectedRoot)+'|'+selectedType;
  let list=CHORDS[key]||[];
  if(!list.length){
-  const generated=generateFingerings(selectedRoot,selectedType,'');
+  const generated=generateFingerings(keyRoot(selectedRoot),selectedType,'');
   if(generated.length)list=generated;
  }
  document.getElementById('resultTitle').textContent=selectedRoot+' '+typeName(selectedType);
  const cards=document.getElementById('cards');cards.replaceChildren();
- if(!list.length){document.getElementById('resultDesc').textContent='이 코드 구성에 맞는 운지를 찾지 못했어요.';const empty=document.createElement('div');empty.className='panel';empty.textContent='현재 기타 튜닝과 운지 범위에서 조건을 만족하는 후보가 없어요. 다른 코드 종류를 선택하거나 분수 코드의 베이스음을 바꿔 보세요.';cards.appendChild(empty);return}
+ if(!list.length){document.getElementById('resultDesc').textContent='이 코드 구성에 맞는 운지를 찾지 못했어요.';const empty=document.createElement('div');empty.className='panel';empty.textContent='현재 기타 튜닝과 운지 범위에서 조건을 만족하는 운지 후보가 없어요. 다른 코드 종류를 선택해 보세요.';cards.appendChild(empty);return}
  document.getElementById('resultDesc').textContent=list.some(c=>c.generated)?`${list.length}가지 자동 계산 후보 · 쉬운 순서 · 연주 전 확인 권장`:`${list.length}가지 운지 · 쉬운 순서`;
  [...list].sort((a,b)=>a.difficulty-b.difficulty).forEach((c,i)=>cards.appendChild(makeCard(c,i,selectedRoot+' '+typeName(selectedType))));
 }
