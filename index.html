@@ -184,7 +184,7 @@ function drawDiagram(chord){
  const frets=chord.frets,positive=frets.filter(n=>n>0),minF=Math.min(...positive,1),maxF=Math.max(...positive,4);
  const startF=maxF>4?Math.floor((minF-1)/4)*4+1:1;
  const left=43,right=247,top=37,dy=26,dx=(right-left)/5;
- function node(tag,attrs,text){const e=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;rotated.appendChild(e);return e}
+ function node(tag,attrs,text){const e=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(tag==='text'&&attrs.x!==undefined&&attrs.y!==undefined)e.setAttribute('transform',`rotate(-90 ${attrs.x} ${attrs.y})`);if(text!==undefined)e.textContent=text;rotated.appendChild(e);return e}
  node('text',{x:145,y:14,'text-anchor':'middle','font-size':11,fill:'#667168'},startF===1?'기본 포지션':`${startF}프렛 포지션`);
  // 11ukul-inspired chord-box format: X/O above strings, fret grid, string labels and the full fingering sequence.
  for(let i=0;i<6;i++){const x=left+i*dx;node('line',{x1:x,y1:top,x2:x,y2:top+4*dy,stroke:'#6e796f','stroke-width':i===0?2.5:1.2})}
