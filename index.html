@@ -27,7 +27,6 @@ footer{text-align:center;color:var(--muted);font-size:11px;line-height:1.7;margi
   <div class="brand"><div class="logo">♪</div><div><div class="brand-name">코드메이트</div><div class="brand-sub">ACOUSTIC GUITAR CHORDS</div></div></div>
   <div class="header-pill">초보자를 위한 코드 가이드</div>
 </header>
-<section class="hero"><div class="eyebrow">PLAY IT EASY</div><h1>쉬운 코드부터,<br>자연스러운 연주까지.</h1><p>검증된 대표 운지표를 살펴보고 코드를 직접 들어보세요.</p><div class="hero-mark">♫</div></section>
 <div class="results-bar"><div><h2 id="resultTitle">C 메이저</h2><p id="resultDesc">쉬운 운지부터 추천해요.</p></div><div class="sort-pill">EASY → ADVANCED</div></div>
 <div class="card-grid" id="cards"></div>
 <section class="view active" id="view-finder">
@@ -50,7 +49,7 @@ const TYPES=[
  ['mMaj7','mMaj7'],['9','9'],['maj9','maj9'],['m9','m9'],['7b9','7♭9'],['7#9','7♯9'],
  ['11','11'],['maj11','maj11'],['m11','m11'],['13','13'],['7sus4','7sus4'],
  ['sus2','sus2'],['sus4','sus4'],['add9','add9'],['madd9','m(add9)'],['add11','add11'],
- ['7#5','7♯5'],['7b5','7♭5']
+ ['7#5','7♯5'],['7b5','7♭5'],['7sus2','7sus2'],['m7add11','m7(add11)'],['maj7#11','maj7♯11'],['7#11','7♯11'],['7b13','7♭13'],['9sus4','9sus4'],['13sus4','13sus4'],['6/9','6/9'],['m6/9','m6/9'],['madd11','m(add11)'],['augMaj7','augMaj7'],['dimMaj7','dimMaj7'],['mMaj9','mMaj9'],['7alt','7alt']
 ];
 const FINGER_NAMES=['개방현','검지','중지','약지','새끼손가락'];
 // Frets are ordered from the 6th (low E) to the 1st (high E) string. -1 means mute, 0 open.
@@ -111,7 +110,7 @@ const QUALITY_INTERVALS={
  '7b9':[0,4,7,10,13],'7#9':[0,4,7,10,15], '11':[0,4,7,10,14,17],maj11:[0,4,7,11,14,17],
  m11:[0,3,7,10,14,17], '13':[0,4,7,10,14,21], '7sus4':[0,5,7,10],
  sus2:[0,2,7],sus4:[0,5,7],add9:[0,2,4,7],madd9:[0,2,3,7],add11:[0,4,5,7],
- '7#5':[0,4,8,10],'7b5':[0,4,6,10]
+ '7#5':[0,4,8,10],'7b5':[0,4,6,10], '7sus2':[0,2,7,10],m7add11:[0,3,7,10,17], 'maj7#11':[0,4,7,11,18], '7#11':[0,4,7,10,18], '7b13':[0,4,7,10,20], '9sus4':[0,5,7,10,14], '13sus4':[0,5,7,10,14,21], '6/9':[0,2,4,7,9], 'm6/9':[0,2,3,7,9], madd11:[0,3,5,7], augMaj7:[0,4,8,11], dimMaj7:[0,3,6,11], mMaj9:[0,3,7,11,14], '7alt':[0,4,6,10,13,15]
 };
 const OPEN_MIDI=[40,45,50,55,59,64];
 function generateFingerings(root,type,bass=''){
