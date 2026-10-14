@@ -99,7 +99,7 @@ function parseDirectInput(){const el=document.getElementById('directChord'),msg=
  const root=normalizeNote(m[1]),bass=m[2]?normalizeNote(m[2]):'';if(!root||(m[2]&&!bass)){msg.textContent='음 이름을 확인해 주세요. 샵은 #, 플렛은 b를 사용합니다.';return}
  selectedRoot=root;directRootLabel=m[1].replace('♯','#').replace('♭','b');directBass=bass;msg.textContent='';render();
 }
-const rootEl=document.getElementById('roots')const rootEl=document.getElementById('roots'),typeEl=document.getElementById('types');
+const rootEl=document.getElementById('roots'),typeEl=document.getElementById('types');
 function renderChips(el,items,label,selected,onPick){el.replaceChildren();items.forEach(item=>{const b=document.createElement('button');b.type='button';b.className='chip'+(item===selected?' active':'');b.textContent=label(item);b.setAttribute('aria-pressed',String(item===selected));b.onclick=()=>onPick(item);el.appendChild(b)})}
 function typeName(type){return TYPES.find(x=>x[0]===type)?.[1]||type}
 const QUALITY_INTERVALS={major:[0,4,7],m:[0,3,7],'7':[0,4,7,10],maj7:[0,4,7,11],m7:[0,3,7,10],sus2:[0,2,7],sus4:[0,5,7],add9:[0,2,4,7]};
@@ -152,7 +152,7 @@ function render(){
   if(generated.length)list=generated;
   else if(!list.length)list=[];
  }
- document.getElementById('resultTitle').textContent= document.getElementById('resultTitle').textContent=(directRootLabel||selectedRoot)+(directBass?'/'+directBass:'')+' '+typeName(selectedType);
+ document.getElementById('resultTitle').textContent=(directRootLabel||selectedRoot)+(directBass?'/'+directBass:'')+' '+typeName(selectedType);
  const cards=document.getElementById('cards');cards.replaceChildren();
  if(!list.length){document.getElementById('resultDesc').textContent='이 코드 구성에 맞는 운지를 찾지 못했어요.';const empty=document.createElement('div');empty.className='panel';empty.textContent='현재 기타 튜닝과 운지 범위에서 조건을 만족하는 후보가 없어요. 다른 코드 종류를 선택하거나 분수 코드의 베이스음을 바꿔 보세요.';cards.appendChild(empty);return}
  document.getElementById('resultDesc').textContent=list.some(c=>c.generated)?`${list.length}가지 자동 계산 후보 · 쉬운 순서 · 연주 전 확인 권장`:`${list.length}가지 운지 · 쉬운 순서`;
