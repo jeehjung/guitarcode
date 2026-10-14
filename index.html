@@ -141,7 +141,7 @@ function generateFingerings(root,type,bass=''){
  });
 }
 function transposeTemplate(root,type){return generateFingerings(root,type,'')}
-function keyRoot(root)function keyRoot(root){return root==='A♯/B♭'?'A#':root==='C♯/D♭'?'C#':root==='D♯/E♭'?'D#':root==='F♯/G♭'?'F#':root==='G♯/A♭'?'G#':root}
+function keyRoot(root){return root==='A♯/B♭'?'A#':root==='C♯/D♭'?'C#':root==='D♯/E♭'?'D#':root==='F♯/G♭'?'F#':root==='G♯/A♭'?'G#':root}
 function render(){
  renderChips(rootEl,ROOTS,x=>x,selectedRoot,x=>{selectedRoot=x;directBass='';directRootLabel='';document.getElementById('directChord').value='';render()});
  renderChips(typeEl,TYPES.map(x=>x[0]),x=>typeName(x),selectedType,x=>{selectedType=x;render()});
@@ -157,8 +157,6 @@ function render(){
  if(!list.length){document.getElementById('resultDesc').textContent='이 코드 구성에 맞는 운지를 찾지 못했어요.';const empty=document.createElement('div');empty.className='panel';empty.textContent='현재 기타 튜닝과 운지 범위에서 조건을 만족하는 후보가 없어요. 다른 코드 종류를 선택하거나 분수 코드의 베이스음을 바꿔 보세요.';cards.appendChild(empty);return}
  document.getElementById('resultDesc').textContent=list.some(c=>c.generated)?`${list.length}가지 자동 계산 후보 · 쉬운 순서 · 연주 전 확인 권장`:`${list.length}가지 운지 · 쉬운 순서`;
  [...list].sort((a,b)=>a.difficulty-b.difficulty).forEach((c,i)=>cards.appendChild(makeCard(c,i,selectedRoot+' '+typeName(selectedType))));
-}
-function makeCard
 }
 function makeCard(chord,index,label){
  const article=document.createElement('article');article.className='chord-card';
