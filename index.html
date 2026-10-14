@@ -39,7 +39,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;line-height:1.7;margi
   <div class="results-bar"><div><h2 id="resultTitle">C 메이저</h2><p id="resultDesc">쉬운 운지부터 추천해요.</p></div><div class="sort-pill">EASY → ADVANCED</div></div>
   <div class="card-grid" id="cards"></div>
 </section>
-<footer>코드메이트 · 기본 튜닝(E–A–D–G–B–E) 기준<br>운지 표기 참고: <a href="https://11ukul.com/guitar-chord-chart/complete" target="_blank" rel="noopener noreferrer">11ukul 기타 코드표</a><br>데이터가 없는 코드의 운지는 임의로 만들어내지 않습니다.</footer>
+<footer>코드메이트 · 기본 튜닝(E–A–D–G–B–E) 기준<br>운지 표기 참고: <a href="https://11ukul.com/guitar-chord-chart/complete" target="_blank" rel="noopener noreferrer">11ukul 기타 코드표</a><br>자동 계산한 운지는 후보로 표시하며 실제 연주 전에 확인이 필요합니다.</footer>
 </div>
 <script>
 'use strict';
@@ -99,29 +99,66 @@ function parseDirectInput(){const el=document.getElementById('directChord'),msg=
  const root=normalizeNote(m[1]),bass=m[2]?normalizeNote(m[2]):'';if(!root||(m[2]&&!bass)){msg.textContent='음 이름을 확인해 주세요. 샵은 #, 플렛은 b를 사용합니다.';return}
  selectedRoot=root;directRootLabel=m[1].replace('♯','#').replace('♭','b');directBass=bass;msg.textContent='';render();
 }
-const rootEl=document.getElementById('roots'),typeEl=document.getElementById('types');
+const rootEl=document.getElementById('roots')const rootEl=document.getElementById('roots'),typeEl=document.getElementById('types');
 function renderChips(el,items,label,selected,onPick){el.replaceChildren();items.forEach(item=>{const b=document.createElement('button');b.type='button';b.className='chip'+(item===selected?' active':'');b.textContent=label(item);b.setAttribute('aria-pressed',String(item===selected));b.onclick=()=>onPick(item);el.appendChild(b)})}
 function typeName(type){return TYPES.find(x=>x[0]===type)?.[1]||type}
-function transposeTemplate(root,type){const target=NOTE_PITCH[root];if(target===undefined)return[];let best=null,bestShift=99;
- for(const [key,arr] of Object.entries(CHORDS)){const parts=key.split('|');if(parts[1]!==type||!arr.length)continue;const source=NOTE_PITCH[parts[0]];if(source===undefined)continue;const shift=(target-source+12)%12;if(shift<bestShift){bestShift=shift;best={arr,shift,source:parts[0]};if(shift===0)break}}
- if(!best)return[];return best.arr.map(c=>{const frets=c.frets.map(n=>n<0?n:n+best.shift);return {...c,name:root+(type==='major'?'':type==='m'?'m':type==='add9'?'add9':type)+` 전조형`,frets,fingers:c.fingers.map((f,i)=>frets[i]===0?0:f),tip:`기존 ${best.source} 운지를 ${best.shift}프렛 이동한 전조형이에요. 프렛이 높아질수록 손가락에 힘이 더 필요할 수 있어요.`}})}
-function keyRoot(root){return root==='A♯/B♭'?'A#':root==='C♯/D♭'?'C#':root==='D♯/E♭'?'D#':root==='F♯/G♭'?'F#':root==='G♯/A♭'?'G#':root}
+const QUALITY_INTERVALS={major:[0,4,7],m:[0,3,7],'7':[0,4,7,10],maj7:[0,4,7,11],m7:[0,3,7,10],sus2:[0,2,7],sus4:[0,5,7],add9:[0,2,4,7]};
+const OPEN_MIDI=[40,45,50,55,59,64];
+function generateFingerings(root,type,bass=''){
+ const rootPc=NOTE_PITCH[root],bassPc=bass?NOTE_PITCH[bass]:rootPc,intervals=QUALITY_INTERVALS[type];
+ if(rootPc===undefined||bassPc===undefined||!intervals)return[];
+ const wanted=new Set(intervals.map(i=>(rootPc+i)%12)),candidates=new Map();
+ for(let base=0;base<=8;base++){
+  const options=OPEN_MIDI.map((open)=>{
+   const arr=[-1];if(wanted.has(open%12))arr.push(0);
+   const lo=base===0?1:base,hi=Math.min(12,base+4);
+   for(let fret=lo;fret<=hi;fret++)if(wanted.has((open+fret)%12))arr.push(fret);
+   return arr;
+  });
+  const frets=Array(6).fill(-1);
+  function visit(i){
+   if(i===6){
+    const sounding=[],present=new Set(),positive=[];
+    for(let j=0;j<6;j++)if(frets[j]>=0){const midi=OPEN_MIDI[j]+frets[j];sounding.push({midi,pc:midi%12});present.add(midi%12);if(frets[j]>0)positive.push(frets[j]);}
+    if(!sounding.length||sounding.reduce((a,b)=>a.midi<b.midi?a:b).pc!==bassPc)return;
+    if([...wanted].some(pc=>!present.has(pc)))return;
+    const unique=[...new Set(positive)].sort((a,b)=>a-b);
+    if(unique.length>4)return;
+    const span=positive.length?Math.max(...positive)-Math.min(...positive):0;if(span>4)return;
+    const muted=frets.filter(n=>n<0).length,open=frets.filter(n=>n===0).length;
+    const score=unique.length*14+span*3+muted*2-positive.reduce((a,b)=>a+b,0)*.15-open*1.2+Math.max(0,Math.max(...positive,0)-5)*1.5;
+    const k=frets.join(',');if(!candidates.has(k))candidates.set(k,{frets:[...frets],score,unique});
+    return;
+   }
+   for(const n of options[i]){frets[i]=n;visit(i+1)}
+  }
+  visit(0);
+ }
+ return [...candidates.values()].sort((a,b)=>a.score-b.score).slice(0,6).map((c,index)=>{
+  const fingers=c.frets.map(n=>n<=0?0:Math.max(1,c.unique.indexOf(n)+1));
+  const label=root+(type==='major'?'':type==='m'?'m':type==='add9'?'add9':type),bassName=NOTE_NAMES[bassPc];
+  return {name:label+(bass?'/'+bassName:'')+` 자동 운지 ${index+1}`,frets:c.frets,fingers,difficulty:c.score<18?1:c.score<30?2:c.score<42?3:4,tip:`코드 구성음(${intervals.map(i=>NOTE_NAMES[(rootPc+i)%12]).join(', ')})을 기준으로 계산한 후보예요. ${bass?'지정한 베이스음 '+bassName+'을 가장 낮은 음으로 배치했어요.':'실제 연주 전에 각 줄의 소리가 깨끗하게 나는지 확인해 주세요.'} 자동 생성 후보이며 연주 적합성이 모두 검증된 것은 아닙니다.`,generated:true,score:c.score};
+ });
+}
+function transposeTemplate(root,type){return generateFingerings(root,type,'')}
+function keyRoot(root)function keyRoot(root){return root==='A♯/B♭'?'A#':root==='C♯/D♭'?'C#':root==='D♯/E♭'?'D#':root==='F♯/G♭'?'F#':root==='G♯/A♭'?'G#':root}
 function render(){
  renderChips(rootEl,ROOTS,x=>x,selectedRoot,x=>{selectedRoot=x;directBass='';directRootLabel='';document.getElementById('directChord').value='';render()});
  renderChips(typeEl,TYPES.map(x=>x[0]),x=>typeName(x),selectedType,x=>{selectedType=x;render()});
  const key=keyRoot(selectedRoot)+'|'+selectedType;
  let list=CHORDS[key]||[];
- if(directBass){const slashShapes={
-  'D/F#':{name:'D/F# 기본형',frets:[2,0,0,2,3,2],fingers:[1,0,0,2,3,1],difficulty:2,tip:'6번 줄 2프렛의 F#을 베이스로 연주하는 D 코드예요.'},
-  'C/G':{name:'C/G 기본형',frets:[3,3,2,0,1,0],fingers:[3,4,2,0,1,0],difficulty:2,tip:'6번 줄 3프렛의 G를 베이스로 연주해요.'},
-  'G/B':{name:'G/B 기본형',frets:[-1,2,0,0,0,3],fingers:[0,1,0,0,0,3],difficulty:2,tip:'5번 줄 2프렛의 B를 베이스로 연주하는 G 코드예요.'}
- };list=(selectedType==='major'&&slashShapes[selectedRoot+'/'+directBass])?[slashShapes[selectedRoot+'/'+directBass]]:[];
- } else if(!list.length){list=transposeTemplate(selectedRoot,selectedType)}
- document.getElementById('resultTitle').textContent=(directRootLabel||selectedRoot)+(directBass?'/'+directBass:'')+' '+typeName(selectedType);
+ if(directRootLabel||directBass||!list.length){
+  const generated=generateFingerings(selectedRoot,selectedType,directBass);
+  if(generated.length)list=generated;
+  else if(!list.length)list=[];
+ }
+ document.getElementById('resultTitle').textContent= document.getElementById('resultTitle').textContent=(directRootLabel||selectedRoot)+(directBass?'/'+directBass:'')+' '+typeName(selectedType);
  const cards=document.getElementById('cards');cards.replaceChildren();
- if(!list.length){document.getElementById('resultDesc').textContent='이 조합은 아직 검증된 운지 데이터가 없어요.';const empty=document.createElement('div');empty.className='panel';empty.textContent='잘못된 운지표를 보여주지 않기 위해 이 코드의 그림은 준비되지 않았어요. 다른 코드 종류를 선택해 주세요.';cards.appendChild(empty);return}
- document.getElementById('resultDesc').textContent=`${list.length}가지 확인된 운지 · 쉬운 순서`;
+ if(!list.length){document.getElementById('resultDesc').textContent='이 코드 구성에 맞는 운지를 찾지 못했어요.';const empty=document.createElement('div');empty.className='panel';empty.textContent='현재 기타 튜닝과 운지 범위에서 조건을 만족하는 후보가 없어요. 다른 코드 종류를 선택하거나 분수 코드의 베이스음을 바꿔 보세요.';cards.appendChild(empty);return}
+ document.getElementById('resultDesc').textContent=list.some(c=>c.generated)?`${list.length}가지 자동 계산 후보 · 쉬운 순서 · 연주 전 확인 권장`:`${list.length}가지 운지 · 쉬운 순서`;
  [...list].sort((a,b)=>a.difficulty-b.difficulty).forEach((c,i)=>cards.appendChild(makeCard(c,i,selectedRoot+' '+typeName(selectedType))));
+}
+function makeCard
 }
 function makeCard(chord,index,label){
  const article=document.createElement('article');article.className='chord-card';
